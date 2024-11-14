@@ -58,85 +58,79 @@ st.sidebar.markdown("""
 if task == "Find Net Price Calculator":
     st.header("🔗 Find a Net Price Calculator for Your Selected School")
 
-    # Search bar for school names
-    search_query = st.text_input("🔍 Search for a school by name")
+    # Combined search and select
+    school_name = st.selectbox(
+        "🔍 Search and select a school",
+        options=st.session_state.df['school_name'].unique(),
+        placeholder="Start typing to search...",
+        index=None
+    )
 
-    # Filter the schools based on search query
-    filtered_df = st.session_state.df[st.session_state.df['school_name'].str.contains(search_query, case=False, na=False)] if search_query else st.session_state.df
+    if school_name:
+        # Get the NPC URL for the selected school
+        selected_school = st.session_state.df[st.session_state.df['school_name'] == school_name].iloc[0]
+        npc_url = selected_school.get('price_calculator_url', '')
 
-    # Dropdown for school selection
-    school_name = st.selectbox("Select a school", filtered_df['school_name'].unique())
+        # Add http:// prefix if the URL doesn't start with http:// or https://
+        if npc_url and not npc_url.startswith(('http://', 'https://')):
+            npc_url = 'https://' + npc_url
 
-    # Get the NPC URL for the selected school
-    selected_school = filtered_df[filtered_df['school_name'] == school_name].iloc[0]
-    npc_url = selected_school.get('price_calculator_url', '')
-
-    # Add http:// prefix if the URL doesn't start with http:// or https://
-    if npc_url and not npc_url.startswith(('http://', 'https://')):
-        npc_url = 'https://' + npc_url
-
-    # Display the NPC link with styling
-    if npc_url:
-        st.success(f"✅ Visit the Net Price Calculator for **{school_name}**:")
-        st.markdown(f"[📄 Net Price Calculator]({npc_url})", unsafe_allow_html=True)
-    else:
-        st.error(f"No Net Price Calculator link is available for **{school_name}**.")
+        # Display the NPC link with styling
+        if npc_url:
+            st.success(f"✅ Visit the Net Price Calculator for **{school_name}**:")
+            st.markdown(f"[📄 Net Price Calculator]({npc_url})", unsafe_allow_html=True)
+        else:
+            st.info(f"No Net Price Calculator link is available for **{school_name}**.")
 
 # Task 2: Research School Financial Aid
 elif task == "Research School Financial Aid":
     st.header("💡 Research Financial Aid Information for Selected School")
 
     try:
-        # Search bar for school names
-        search_query = st.text_input("🔍 Search for a school by name")
+        # Combined search and select
+        school_name = st.selectbox(
+            "🔍 Search and select a school",
+            options=st.session_state.df['school_name'].unique(),
+            placeholder="Start typing to search...",
+            index=None
+        )
 
-        # Filter the schools based on search query
-        filtered_df = st.session_state.df[st.session_state.df['school_name'].str.contains(search_query, case=False, na=False)] if search_query else st.session_state.df
+        if school_name:
+            # Get the selected school's information with additional error handling
+            school_data = st.session_state.df[st.session_state.df['school_name'] == school_name]
+            if school_data.empty:
+                st.info("Selected school data not found.")
+                st.stop()
+                
+            selected_school = school_data.iloc[0]
 
-        # Always show dropdown with all schools, but display warning if no matches
-        if filtered_df.empty:
-            st.warning("No schools found matching your search criteria.")
-            school_options = st.session_state.df['school_name'].unique()  # Show all schools instead
-        else:
-            school_options = filtered_df['school_name'].unique()
+            # Display school financial aid information in columns for better layout
+            col1, col2 = st.columns(2)
             
-        school_name = st.selectbox("Select a school", school_options)
-
-        # Get the selected school's information with additional error handling
-        school_data = filtered_df[filtered_df['school_name'] == school_name]
-        if school_data.empty:
-            st.error("Selected school data not found.")
-            st.stop()
-            
-        selected_school = school_data.iloc[0]
-
-        # Display school financial aid information in columns for better layout
-        col1, col2 = st.columns(2)
-        
-        # Helper function to format metrics with error handling
-        def display_metric(col, label, value_key, is_percentage=False, is_currency=False):
-            try:
-                value = selected_school[value_key]
-                if pd.isna(value):
-                    col.error(f"{label}: Data not available")
-                else:
-                    if is_percentage:
-                        formatted_value = f"{value*100:.2f}%"
-                    elif is_currency:
-                        formatted_value = f"${value:,.0f}"
+            # Helper function to format metrics with error handling
+            def display_metric(col, label, value_key, is_percentage=False, is_currency=False):
+                try:
+                    value = selected_school[value_key]
+                    if pd.isna(value):
+                        col.info(f"{label}: Data not available")
                     else:
-                        formatted_value = f"{value:.0f}"
-                    col.metric(label=label, value=formatted_value)
-            except (KeyError, TypeError):
-                col.error(f"{label}: Data not available")
+                        if is_percentage:
+                            formatted_value = f"{value*100:.2f}%"
+                        elif is_currency:
+                            formatted_value = f"${value:,.0f}"
+                        else:
+                            formatted_value = f"{value:.0f}"
+                        col.metric(label=label, value=formatted_value)
+                except (KeyError, TypeError):
+                    col.info(f"{label}: Data not available")
 
-        # Display metrics with error handling
-        display_metric(col1, "In-State Tuition", 'in_state_tuition', is_currency=True)
-        display_metric(col2, "Out-of-State Tuition", 'out_of_state_tuition', is_currency=True)
-        display_metric(col1, "Median Debt", 'median_debt', is_currency=True)
-        display_metric(col2, "Completion Rate", 'completion_rate', is_percentage=True)
-        display_metric(col1, "Admission Rate", 'admission_rate', is_percentage=True)
-        display_metric(col2, "Average SAT Score", 'sat_average')
+            # Display metrics with error handling
+            display_metric(col1, "In-State Tuition", 'in_state_tuition', is_currency=True)
+            display_metric(col2, "Out-of-State Tuition", 'out_of_state_tuition', is_currency=True)
+            display_metric(col1, "Median Debt", 'median_debt', is_currency=True)
+            display_metric(col2, "Completion Rate", 'completion_rate', is_percentage=True)
+            display_metric(col1, "Admission Rate", 'admission_rate', is_percentage=True)
+            display_metric(col2, "Average SAT Score", 'sat_average')
 
     except Exception as e:
         st.error("❌ Financial Aid Information not available. Please try again later.")
@@ -187,6 +181,7 @@ elif task == "Compare Schools":
             'net_price_public': {'label': 'Net Price - Public ($)', 'tooltip': 'Average annual net price after aid at public institutions'},
             'net_price_private': {'label': 'Net Price - Private ($)', 'tooltip': 'Average annual net price after aid at private institutions'},
             'median_debt': {'label': 'Median Student Debt ($)', 'tooltip': 'Median federal debt of graduates'},
+            'pell_grant_rate': {'label': 'Non-Loan Aid Rate (%)', 'tooltip': 'Percentage of financial aid that is not based on loans'},
         },
         "Academic Performance": {
             'completion_rate': {'label': 'Graduation Rate (%)', 'tooltip': 'Percentage of students who graduate within 150% of expected time'},
@@ -198,23 +193,40 @@ elif task == "Compare Schools":
             'first_generation': {'label': 'First Generation Students (%)', 'tooltip': 'Percentage of first-generation college students'},
             'age_entry': {'label': 'Average Age at Entry', 'tooltip': 'Average age of students when they first enroll'},
             'median_family_income': {'label': 'Median Family Income ($)', 'tooltip': 'Median family income of students'},
+            'percent_white': {'label': 'White Students (%)', 'tooltip': 'Percentage of students who identify as White'},
+            'percent_black': {'label': 'Black Students (%)', 'tooltip': 'Percentage of students who identify as Black'},
+            'percent_hispanic': {'label': 'Hispanic Students (%)', 'tooltip': 'Percentage of students who identify as Hispanic'},
+            'percent_asian': {'label': 'Asian Students (%)', 'tooltip': 'Percentage of students who identify as Asian'},
+            'percent_non_white': {'label': 'Non-White Students (%)', 'tooltip': 'Total percentage of non-White students'},
+            'locale': {'label': 'Campus Location', 'tooltip': 'Type of area where campus is located (urban, suburban, rural)'},
         },
         "Post-Graduation": {
             'median_earnings_10yrs': {'label': 'Median Earnings after 10 years ($)', 'tooltip': 'Median earnings of graduates 10 years after enrollment'},
         }
     }
 
-    # School selection
-    search_query = st.text_input("🔍 Search for schools by name")
-    filtered_df = st.session_state.df[st.session_state.df['school_name'].str.contains(search_query, case=False, na=False)] if search_query else st.session_state.df
+    # Initialize session state for selected schools if it doesn't exist
+    if 'selected_schools' not in st.session_state:
+        st.session_state.selected_schools = []
     
+    # Combined search and select with multiselect
     selected_schools = st.multiselect(
-        "Select schools to compare (max 5)",
-        options=filtered_df['school_name'].unique(),
-        max_selections=5
+        "🔍 Search and select schools to compare (max 5)",
+        options=st.session_state.df['school_name'].unique(),
+        default=st.session_state.selected_schools,
+        max_selections=5,
+        placeholder="Start typing to search..."
     )
 
-    if selected_schools:
+    # Update session state
+    st.session_state.selected_schools = selected_schools
+
+    # Clear selection button
+    if st.button("Clear Selection"):
+        st.session_state.selected_schools = []
+        st.rerun()
+
+    if st.session_state.selected_schools:
         # Metric selection
         st.subheader("📊 Select Comparison Metrics")
         metric_category = st.selectbox(
@@ -231,7 +243,7 @@ elif task == "Compare Schools":
 
         if selected_metrics:
             # Prepare comparison data
-            comparison_df = filtered_df[filtered_df['school_name'].isin(selected_schools)].copy()
+            comparison_df = st.session_state.df[st.session_state.df['school_name'].isin(st.session_state.selected_schools)].copy()
 
             # Format the data
             def format_value(value, metric):
@@ -241,12 +253,22 @@ elif task == "Compare Schools":
                             'net_price_public', 'net_price_private', 'median_debt', 
                             'median_family_income', 'median_earnings_10yrs']:
                     return f"${value:,.0f}"
-                elif metric in ['completion_rate', 'admission_rate', 'first_generation']:
-                    return f"{value*100:.1f}%"
+                elif metric in ['completion_rate', 'admission_rate', 'first_generation', 
+                               'pell_grant_rate', 'percent_white', 'percent_black', 
+                               'percent_hispanic', 'percent_asian', 'percent_non_white']:
+                    return f"{value*100:.1f}%" if value <= 1 else f"{value:.1f}%"
                 elif metric in ['student_size', 'sat_average']:
                     return f"{int(value):,}"
                 elif metric == 'age_entry':
                     return f"{value:.1f} years"
+                elif metric == 'locale':
+                    locale_map = {
+                        11: 'City: Large', 12: 'City: Midsize', 13: 'City: Small',
+                        21: 'Suburb: Large', 22: 'Suburb: Midsize', 23: 'Suburb: Small',
+                        31: 'Town: Fringe', 32: 'Town: Distant', 33: 'Town: Remote',
+                        41: 'Rural: Fringe', 42: 'Rural: Distant', 43: 'Rural: Remote'
+                    }
+                    return locale_map.get(value, 'Unknown')
                 return str(value)
 
             for metric in selected_metrics:
@@ -262,7 +284,7 @@ elif task == "Compare Schools":
 
             # Show visualizations
             st.subheader("📈 Visual Comparison")
-            numeric_df = filtered_df[filtered_df['school_name'].isin(selected_schools)].copy()
+            numeric_df = st.session_state.df[st.session_state.df['school_name'].isin(st.session_state.selected_schools)].copy()
             for metric in selected_metrics:
                 if metric not in ['city', 'state', 'zip']:
                     fig = px.bar(
@@ -301,10 +323,10 @@ elif task == "Compare Schools":
 
             # Similar schools suggestion
             st.subheader("📚 Similar Schools")
-            similar_schools = filtered_df[
-                (filtered_df['state'].isin(filtered_df[filtered_df['school_name'].isin(selected_schools)]['state'])) &
-                (~filtered_df['school_name'].isin(selected_schools))
-            ].sample(n=min(3, len(filtered_df)))
+            similar_schools = st.session_state.df[
+                (st.session_state.df['state'].isin(st.session_state.df[st.session_state.df['school_name'].isin(st.session_state.selected_schools)]['state'])) &
+                (~st.session_state.df['school_name'].isin(st.session_state.selected_schools))
+            ].sample(n=min(3, len(st.session_state.df)))
             
             st.markdown("You might also be interested in comparing with these schools:")
             for _, school in similar_schools.iterrows():
@@ -359,7 +381,7 @@ elif task == "Contact Financial Aid Office":
         st.info(f"For more information, you can visit the financial aid page of **{school_name}**:")
         st.markdown(f"[🌐 Visit Financial Aid Office]({school_url})", unsafe_allow_html=True)
     else:
-        st.error(f"No website information available for **{school_name}**.")
+        st.info(f"No website information available for **{school_name}**.")
 
 # Task 5: Scholarship Search
 elif task == "Scholarship Search":
