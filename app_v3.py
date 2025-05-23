@@ -138,9 +138,6 @@ with st.sidebar:
             "Compare Schools",
             "Contact Financial Aid Office",
             "Scholarship Search",
-            "Student Reviews & Insights",
-            "Transfer Admissions Dashboard",
-            "Campus Visit Planner"
         ]
     )
     
