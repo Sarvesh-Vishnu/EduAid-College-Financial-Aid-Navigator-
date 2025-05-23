@@ -19,8 +19,8 @@ def load_and_preprocess_data(path="college_scorecard_data.csv"):
             df.columns
             .str.strip()
             .str.lower()
-            .str.replace(r'[^\w]', '_', regex=True)  # Replace special chars with underscores
-            .str.replace(r'_+', '_', regex=True)      # Replace multiple underscores with single
+            .str.replace(r'[^\w]', '_', regex=True)
+            .str.replace(r'_+', '_', regex=True)
         )
         
         # Rename critical columns
@@ -152,23 +152,7 @@ with st.sidebar:
     """)
 
 # ─── Feature Implementations ───────────────────────────────────────────────────
-if task == "Find Net Price Calculator":
-    st.header("🔗 Net Price Calculator Finder")
-    school = st.selectbox("Select School", df['school_name'].unique())
-    
-    if school:
-        school_data = df[df['school_name'] == school].iloc[0]
-        url = school_data.get('net_price_calculator_url', '')
-        
-        if url:
-            if not url.startswith(('http://', 'https://')):
-                url = f'https://{url}'
-            st.success(f"**{school}** Net Price Calculator:")
-            st.markdown(f"[📲 Access Calculator]({url})")
-        else:
-            st.warning("No net price calculator available for this school")
-
-elif task == "Student Reviews & Insights":
+if task == "Student Reviews & Insights":
     st.header("📚 Student Reviews & Insights")
     school = st.selectbox("Select School", df['school_name'].unique())
     
@@ -224,3 +208,4 @@ elif task == "Campus Visit Planner":
                 st.dataframe(events_df[['name', 'date']], hide_index=True)
         else:
             st.info("No upcoming events found for this campus")
+
