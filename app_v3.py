@@ -151,61 +151,61 @@ with st.sidebar:
     [Visit our website](https://www.empoweringeducationfund.org/)
     """)
 
-# ─── Feature Implementations ───────────────────────────────────────────────────
-if task == "Student Reviews & Insights":
-    st.header("📚 Student Reviews & Insights")
-    school = st.selectbox("Select School", df['school_name'].unique())
+# # ─── Feature Implementations ───────────────────────────────────────────────────
+# if task == "Student Reviews & Insights":
+#     st.header("📚 Student Reviews & Insights")
+#     school = st.selectbox("Select School", df['school_name'].unique())
     
-    if school:
-        school_info = df[df['school_name'] == school].iloc[0]
+#     if school:
+#         school_info = df[df['school_name'] == school].iloc[0]
         
-        with st.spinner("Gathering student insights..."):
-            unigo_df = fetch_unigo_reviews(school_info['unit_id'])
-            collegewise_df = fetch_collegewise_reviews(school)
-            combined_reviews = pd.concat([unigo_df, collegewise_df], ignore_index=True)
+#         with st.spinner("Gathering student insights..."):
+#             unigo_df = fetch_unigo_reviews(school_info['unit_id'])
+#             collegewise_df = fetch_collegewise_reviews(school)
+#             combined_reviews = pd.concat([unigo_df, collegewise_df], ignore_index=True)
         
-        if not combined_reviews.empty:
-            st.subheader("Recent Student Reviews")
-            for _, review in combined_reviews.head(5).iterrows():
-                with st.expander(f"⭐ {review['rating']} - {review['author']}"):
-                    st.write(review['text'])
+#         if not combined_reviews.empty:
+#             st.subheader("Recent Student Reviews")
+#             for _, review in combined_reviews.head(5).iterrows():
+#                 with st.expander(f"⭐ {review['rating']} - {review['author']}"):
+#                     st.write(review['text'])
             
-            avg_rating = combined_reviews['rating'].mean()
-            st.metric("Average Rating", f"{avg_rating:.1f}/5")
-        else:
-            st.info("No reviews available for this school")
+#             avg_rating = combined_reviews['rating'].mean()
+#             st.metric("Average Rating", f"{avg_rating:.1f}/5")
+#         else:
+#             st.info("No reviews available for this school")
 
-elif task == "Transfer Admissions Dashboard":
-    st.header("🔄 Transfer Admissions Insights")
-    school = st.selectbox("Select School", df['school_name'].unique())
+# elif task == "Transfer Admissions Dashboard":
+#     st.header("🔄 Transfer Admissions Insights")
+#     school = st.selectbox("Select School", df['school_name'].unique())
     
-    if school:
-        school_data = df[df['school_name'] == school].iloc[0]
+#     if school:
+#         school_data = df[df['school_name'] == school].iloc[0]
         
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Transfer Acceptance Rate", 
-                   f"{school_data.get('transfer_admit_rate', 0)*100:.1f}%" if pd.notna(school_data.get('transfer_admit_rate')) else "N/A")
+#         col1, col2, col3 = st.columns(3)
+#         col1.metric("Transfer Acceptance Rate", 
+#                    f"{school_data.get('transfer_admit_rate', 0)*100:.1f}%" if pd.notna(school_data.get('transfer_admit_rate')) else "N/A")
         
-        col2.metric("Avg Credits Accepted", 
-                   f"{school_data.get('transfer_credit_acceptance', 0):.0f}" if pd.notna(school_data.get('transfer_credit_acceptance')) else "N/A")
+#         col2.metric("Avg Credits Accepted", 
+#                    f"{school_data.get('transfer_credit_acceptance', 0):.0f}" if pd.notna(school_data.get('transfer_credit_acceptance')) else "N/A")
         
-        col3.metric("Articulation Agreements", 
-                   "Available" if school_data.get('articulation_partners') else "None Reported")
+#         col3.metric("Articulation Agreements", 
+#                    "Available" if school_data.get('articulation_partners') else "None Reported")
 
-elif task == "Campus Visit Planner":
-    st.header("🗺️ Campus Visit Planner")
-    school = st.selectbox("Select School", df['school_name'].unique())
+# elif task == "Campus Visit Planner":
+#     st.header("🗺️ Campus Visit Planner")
+#     school = st.selectbox("Select School", df['school_name'].unique())
     
-    if school:
-        school_data = df[df['school_name'] == school].iloc[0]
-        events_df = fetch_campus_events(school_data['school_url'])
+#     if school:
+#         school_data = df[df['school_name'] == school].iloc[0]
+#         events_df = fetch_campus_events(school_data['school_url'])
         
-        if not events_df.empty:
-            st.subheader("Upcoming Events")
-            st.map(events_df[['latitude', 'longitude']], zoom=12)
+#         if not events_df.empty:
+#             st.subheader("Upcoming Events")
+#             st.map(events_df[['latitude', 'longitude']], zoom=12)
             
-            with st.expander("Event Details"):
-                st.dataframe(events_df[['name', 'date']], hide_index=True)
-        else:
-            st.info("No upcoming events found for this campus")
+#             with st.expander("Event Details"):
+#                 st.dataframe(events_df[['name', 'date']], hide_index=True)
+#         else:
+#             st.info("No upcoming events found for this campus")
 
