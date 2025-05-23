@@ -36,8 +36,9 @@ df = load_scorecard_data()
 
 # ─── Caching External Data Sources ─────────────────────────────────────────────
 @st.cache_data(ttl=6*3600)
-def load_unigo_comments(school_id):
-    url = f"https://www.unigo.com/college/{school_id}/reviews"
+def load_unigo_comments(school_slug: str) -> pd.DataFrame:
+    """Scrape Unigo reviews by slug (e.g. 'harvard-university')."""
+    url = f"https://www.unigo.com/college/{school_slug}/reviews"
     res = requests.get(url, timeout=10)
     soup = BeautifulSoup(res.text, "html.parser")
     reviews = []
@@ -53,8 +54,7 @@ def load_unigo_comments(school_id):
     return pd.DataFrame(reviews)
 
 @st.cache_data(ttl=6*3600)
-def load_collegewise_comments(school_name):
-    # Hypothetical scraping endpoint
+def load_collegewise_comments(school_name: str) -> pd.DataFrame:
     url = f"https://collegewise.com/schools/{school_name.replace(' ', '-').lower()}/reviews"
     res = requests.get(url, timeout=10)
     soup = BeautifulSoup(res.text, "html.parser")
@@ -71,7 +71,7 @@ def load_collegewise_comments(school_name):
     return pd.DataFrame(reviews)
 
 @st.cache_data(ttl=24*3600)
-def load_tour_events(school_url):
+def load_tour_events(school_url: str) -> pd.DataFrame:
     res = requests.get(school_url.rstrip("/") + "/visit/events", timeout=10)
     soup = BeautifulSoup(res.text, "html.parser")
     events = []
@@ -87,11 +87,11 @@ def load_tour_events(school_url):
             continue
     return pd.DataFrame(events)
 
-# ─── Sidebar Navigation ────────────────────────────────────────────────────────
+# ─── Sidebar Navigation ───────────────────────────────────────────────────────
 st.sidebar.header("🔍 Select a Task")
 task = st.sidebar.selectbox(
     "What would you like to do?",
-    (
+    [
         "Find Net Price Calculator",
         "Research School Financial Aid",
         "Compare Schools",
@@ -100,7 +100,7 @@ task = st.sidebar.selectbox(
         "Student Reviews & Insights",
         "Transfer Admissions Dashboard",
         "Campus Visit Planner",
-    )
+    ]
 )
 st.sidebar.markdown("---")
 st.sidebar.markdown("""
@@ -131,8 +131,7 @@ elif task == "Research School Financial Aid":
     if school:
         data = df[df.school_name == school]
         if data.empty:
-            st.error("Data not found.")
-            st.stop()
+            st.error("Data not found."); st.stop()
         s = data.iloc[0]
         col1, col2 = st.columns(2)
         def show_metric(col, label, key, pct=False, curr=False):
@@ -171,7 +170,6 @@ elif task == "Compare Schools":
         mets = [m for m in available_metrics[cat] if st.checkbox(available_metrics[cat][m], key=m)]
         if mets:
             comp = df[df.school_name.isin(sel)][['school_name']+mets].copy()
-            # Format values
             def fmt(v,k):
                 if pd.isna(v): return "N/A"
                 if 'tuition' in k or 'earnings' in k or 'cost' in k: return f"${v:,.0f}"
@@ -180,12 +178,10 @@ elif task == "Compare Schools":
                 comp[m] = comp[m].apply(lambda x: fmt(x,m))
             comp.columns = ["School"] + [available_metrics[cat][m] for m in mets]
             st.dataframe(comp, use_container_width=True)
-            # Plot
             num = df[df.school_name.isin(sel)]
             for m in mets:
                 fig = px.bar(num, x='school_name', y=m, title=available_metrics[cat][m])
                 st.plotly_chart(fig, use_container_width=True)
-            # Download
             st.subheader("Download")
             fmt_opt = st.radio("Format", ["CSV","Excel"], horizontal=True)
             if fmt_opt == "CSV":
@@ -249,8 +245,8 @@ elif task == "Student Reviews & Insights":
     st.header("🗣️ Student Reviews & Insights")
     school = st.selectbox("Select a school", df['school_name'].unique())
     if school:
-        uid = int(df[df.school_name==school]['unit_id'].iloc[0])
-        u = load_unigo_comments(uid)
+        slug = df.loc[df.school_name == school, 'unigo_slug'].iloc[0]
+        u = load_unigo_comments(slug)
         c = load_collegewise_comments(school)
         combined = pd.concat([u, c], ignore_index=True)
         if combined.empty:
